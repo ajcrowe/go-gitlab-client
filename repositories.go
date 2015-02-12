@@ -11,6 +11,7 @@ const (
 	repo_url_branch   = "/projects/:id/repository/branches/:branch" // Get a specific branch of a project.
 	repo_url_tags     = "/projects/:id/repository/tags"             // List project repository tags
 	repo_url_commits  = "/projects/:id/repository/commits"          // List repository commits
+	repo_url_commit   = "/projects/:id/repository/commits/:ref"     // Get a specific commit of a project.
 	repo_url_tree     = "/projects/:id/repository/tree"             // List repository tree
 	repo_url_raw_file = "/projects/:id/repository/blobs/:sha"       // Get raw file content for specific commit/branch
 )
@@ -184,6 +185,27 @@ func (g *Gitlab) RepoCommits(id string) ([]*Commit, error) {
 	}
 
 	return commits, err
+}
+
+func (g *Gitlab) RepoCommit(id, refName string) (*Commit, error) {
+
+	url, opaque := g.ResourceUrlRaw(repo_url_commit, map[string]string{
+		":id":  id,
+		":ref": refName,
+	})
+
+	var commit *Commit
+
+	contents, err := g.buildAndExecRequestRaw("GET", url, opaque, nil)
+	if err == nil {
+		err = json.Unmarshal(contents, &commit)
+		if err == nil {
+			t, _ := time.Parse(dateLayout, commit.Created_At)
+			commit.CreatedAt = t
+		}
+	}
+
+	return commit, err
 }
 
 /*
